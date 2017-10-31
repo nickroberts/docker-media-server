@@ -13,102 +13,21 @@ services:
       - .env
     environment:
       - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
-      - TRANSMISSION_ALT_SPEED-DOWN=500
-      - TRANSMISSION_ALT_SPEED-ENABLED=false
-      - TRANSMISSION_ALT_SPEED-TIME-BEGIN=540
-      - TRANSMISSION_ALT_SPEED-TIME-DAY=62
-      - TRANSMISSION_ALT_SPEED-TIME-ENABLED=true
-      - TRANSMISSION_ALT_SPEED-TIME-END=1020
-      - PUID=${USER_ID}
-      - PGID=${GROUP_ID}
+      - TRANSMISSION_ALT_SPEED_DOWN=500
+      - TRANSMISSION_ALT_SPEED_ENABLED=false
+      - TRANSMISSION_ALT_SPEED_TIME_BEGIN=540
+      - TRANSMISSION_ALT_SPEED_TIME_DAY=62
+      - TRANSMISSION_ALT_SPEED_TIME_ENABLED=true
+      - TRANSMISSION_ALT_SPEED_TIME_END=1020
+      - TRANSMISSION_SPEED_LIMIT_UP=0
+      - TRANSMISSION_SPEED_LIMIT_UP_ENABLED=true
+      - TRANSMISSION_RATIO_LIMIT=0
+      - TRANSMISSION_RATIO_LIMIT_ENABLED=true
     ports:
       - 9091:9091
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./data/transmission:/data
-    networks:
-      - web
-  jackett:
-    image: linuxserver/jackett:latest
-    container_name: dms.jackett
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - PUID=${USER_ID}
-      - PGID=${GROUP_ID}
-    ports:
-      - 9117:9117
-    volumes:
-      - ./data/jackett/config/:/config
-      - ./data/transmission/downloads/:/downloads
-    networks:
-      - web
-  sonarr:
-    image: linuxserver/sonarr:latest
-    container_name: dms.sonarr
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - PUID=${USER_ID}
-      - PGID=${GROUP_ID}
-    ports:
-      - 8989:8989
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /dev/rtc:/dev/rtc:ro
-      - ${TV_SHOWS_FOLDER}:/tv
-      - ./data/sonarr/config:/config
-      - ./data/transmission/downloads/:/downloads
-    depends_on:
-      - transmission
-    networks:
-      - web
-  radarr:
-    image: linuxserver/radarr:latest
-    container_name: dms.radarr
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - PUID=${USER_ID}
-      - PGID=${GROUP_ID}
-    ports:
-      - 7878:7878
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /dev/rtc:/dev/rtc:ro
-      - ${MOVIES_FOLDER}:/movies
-      - ./data/radarr/config:/config
-      - ./data/transmission/downloads/:/downloads
-    depends_on:
-      - transmission
-    networks:
-      - web
-  plex:
-    image: plexinc/pms-docker:latest
-    container_name: dms.plex
-    restart: always
-    env_file:
-      - .env
-    environment:
-      # Once the reverse proxy is setup, we can use this
-      # - ADVERTISE_IP="https://plex.${DOMAIN_NAME}/"
-      - PLEX_UID=${USER_ID}
-      - PLEX_GID=${GROUP_ID}
-    ports:
-      - 32400:32400
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ${MOVIES_FOLDER}:/data/movies
-      - ${TV_SHOWS_FOLDER}:/data/tvshows
-      - ./data/plex/config/:/config
-      - /tmp/transcode/:/transcode
-    depends_on:
-      - transmission
-      - sonarr
-      - radarr
     networks:
       - web
   plexpy:
@@ -117,17 +36,11 @@ services:
     restart: always
     env_file:
       - .env
-    environment:
-      - PUID=${USER_ID}
-      - PGID=${GROUP_ID}
     ports:
       - 8181:8181
     volumes:
       - ./data/plexpy:/config
-      # Note: This might be different based on OS
-      - ./data/plex/config/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs:ro
-    depends_on:
-      - plex
+      - C:\Users\djpar\AppData\Local:/logs:ro
     networks:
       - web
 networks:
