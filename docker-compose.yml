@@ -40,7 +40,7 @@ services:
       - 8181:8181
     volumes:
       - ./data/plexpy:/config
-      - C:\Users\djpar\AppData\Local:/logs:ro
+      - /c/Users/djpar/AppData/Local:/logs:ro
     networks:
       - web
 networks:
