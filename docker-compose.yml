@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   transmission:
@@ -13,23 +13,27 @@ services:
       - .env
     environment:
       - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
-      - TRANSMISSION_ALT_SPEED_DOWN=1024
+      - TRANSMISSION_ALT_SPEED_DOWN=2048
       - TRANSMISSION_ALT_SPEED_ENABLED=false
       - TRANSMISSION_ALT_SPEED_TIME_BEGIN=540
       - TRANSMISSION_ALT_SPEED_TIME_DAY=62
       - TRANSMISSION_ALT_SPEED_TIME_ENABLED=true
       - TRANSMISSION_ALT_SPEED_TIME_END=1020
       - TRANSMISSION_DOWNLOAD_QUEUE_ENABLED=true
-      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=2
+      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=3
       - TRANSMISSION_SPEED_LIMIT_UP=0
       - TRANSMISSION_SPEED_LIMIT_UP_ENABLED=true
       - TRANSMISSION_RATIO_LIMIT=0
       - TRANSMISSION_RATIO_LIMIT_ENABLED=true
+      - CREATE_TUN_DEVICE=true
+      - LOCAL_NETWORK=10.0.0.0/16
     ports:
       - 9091:9091
     volumes:
-      - /etc/localtime:/etc/localtime:ro
+      # - /etc/localtime:/etc/localtime:ro
       - ./data/transmission:/data
+      # - :downloads:/downloads
+      # - /g/Downloads:/downloads
     networks:
       - web
   tautulli:
@@ -46,5 +50,136 @@ services:
       - /c/Users/djpar/AppData/Local/Plex Media Server/Logs:/logs:ro
     networks:
       - web
+  lazylibrarian:
+    image: linuxserver/lazylibrarian
+    # image: thraxis/lazylibrarian-calibre
+    # build:
+    #   dockerfile: Dockerfile
+    #   context: .
+    container_name: dms.lazylibrarian
+    privileged: true
+    # restart: always
+    volumes:
+      - ./data/lazylibrarian/config:/config
+      - downloads:/downloads
+      - books:/books
+      - audiobooks:/audiobooks
+      - magazines:/magazines
+      - comics:/comics
+    ports:
+      - 5299:5299
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      - DOCKER_MODS=linuxserver/calibre-web:calibre
+    networks:
+      - web
+  calibre-web:
+    image: linuxserver/calibre-web
+    container_name: dms.calibre-web
+    privileged: true
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      # - DOCKER_MODS=linuxserver/calibre-web:calibre
+    volumes:
+      - ./data/calibre/config:/config
+      - books:/books
+    ports:
+      - 8083:8083
+    networks:
+      - web
+  ombi:
+    image: linuxserver/ombi
+    container_name: dms.ombi
+    privileged: true
+    restart: always
+    volumes:
+      - ./data/ombi:/config
+      - ./data/shared:/shared
+    ports:
+      - 3579:3579
+    environment:
+      - TZ=America/Detroit
+    networks:
+      - web
+  torproxy:
+    image: dperson/torproxy:latest
+    container_name: dms.torproxy
+    privileged: true
+    restart: always
+    ports:
+      - 8118:8118
+    build:
+      context: .
+      args:
+        b: 500 # Use a maximum of 500 kilobytes/sec
+    networks:
+      - web
+  # jackett:
+  #   restart: unless-stopped
+  #   image: linuxserver/jackett:latest
+  #   container_name: dms.jackett
+  #   privileged: true
+  #   restart: always
+  #   depends_on:
+  #     - torproxy
+  #   links:
+  #     - torproxy
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/Detroitg
+  #     - RUN_OPTS=--ProxyConnection=dms.torproxy:8118 # Connect the proxy
+  #   volumes:
+  #     - ./data/jackett:/config
+  # delugevpn:
+  #   image: binhex/arch-delugevpn
+  #   container_name: dms.delugevpn
+  #   ports:
+  #     - 8112:8112
+  #     # - 8118:8118
+  #     - 58846:58846
+  #     - 58946:58946
+  #   volumes:
+  #     - ./data/delugevpn:/config
+  #     - ./data/downloads:/data
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     VPN_ENABLED: "yes"
+  #     VPN_PROV: "pia"
+  #     ENABLE_PRIVOXY: "yes"
+  #     STRICT_PORT_FORWARDING: "yes"
+  #     NAME_SERVERS: "8.8.8.8,8.8.4.4,209.222.18.222"
 networks:
   web:
+volumes:
+  downloads:
+    driver_opts:
+      type: none
+      device: /g/Downloads
+      o: bind
+  books:
+    driver_opts:
+      type: none
+      device: /g/Media/Books
+      o: bind
+  audiobooks:
+    driver_opts:
+      type: none
+      device: /g/Media/Audiobooks
+      o: bind
+  magazines:
+    driver_opts:
+      type: none
+      device: /g/Media/Magazines
+      o: bind
+  comics:
+    driver_opts:
+      type: none
+      device: /g/Media/Comics
+      o: bind
