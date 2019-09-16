@@ -36,6 +36,24 @@ services:
       # - /g/Downloads:/downloads
     networks:
       - web
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: dms.lidarr
+    privileged: true
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      - UMASK_SET=022 #optional
+    volumes:
+      - ./data/lidarr/config:/config
+      - music:/music
+      - downloads:/downloads
+    ports:
+      - 8686:8686
+    networks:
+      - web
   tautulli:
     image: shiggins8/tautulli:latest
     container_name: dms.tautulli
@@ -162,6 +180,11 @@ volumes:
     driver_opts:
       type: none
       device: /g/Downloads
+      o: bind
+  music:
+    driver_opts:
+      type: none
+      device: /g/Media/Music
       o: bind
   books:
     driver_opts:
