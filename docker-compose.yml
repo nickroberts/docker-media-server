@@ -1,11 +1,51 @@
 version: "3"
 
 services:
+  cloudflare-ddns:
+    image: oznu/cloudflare-ddns
+    container_name: dms.cloudflare-ddns
+    environment:
+      - EMAIL=djparadyme@gmail.com
+      - API_KEY=${CLOUDFLARE_API_KEY}
+      - ZONE=nicholasjay.com
+      - SUBDOMAIN=dms
+      - PROXIED=false
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - web
+  letsencrypt:
+    image: linuxserver/letsencrypt
+    container_name: dms.letsencrypt
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      - URL=dms.nicholasjay.com
+      - SUBDOMAINS=wildcard
+      # - ONLY_SUBDOMAINS=true
+      # - VALIDATION=http
+      - VALIDATION=dns
+      - DNSPLUGIN=cloudflare
+      - EMAIL=djparadyme@gmail.com
+      # - STAGING=true
+    volumes:
+      - ./data/letsencrypt/config:/config
+    ports:
+      - 443:443
+      - 80:80
+    restart: unless-stopped
+    networks:
+      - web
   transmission:
     image: haugene/transmission-openvpn:latest
     container_name: dms.transmission
-    privileged: true
-    restart: always
+    # privileged: true
+    cap_add:
+      - NET_ADMIN
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -34,13 +74,15 @@ services:
       - ./data/transmission:/data
       # - :downloads:/downloads
       # - /g/Downloads:/downloads
+    restart: unless-stopped
     networks:
       - web
   lidarr:
     image: linuxserver/lidarr
     container_name: dms.lidarr
-    privileged: true
-    restart: always
+    # privileged: true
+    cap_add:
+      - NET_ADMIN
     environment:
       - PUID=1000
       - PGID=1000
@@ -52,13 +94,19 @@ services:
       - downloads:/downloads
     ports:
       - 8686:8686
+    restart: unless-stopped
     networks:
       - web
   tautulli:
-    image: shiggins8/tautulli:latest
+    image: linuxserver/tautulli
     container_name: dms.tautulli
-    privileged: true
-    restart: always
+    # privileged: true
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
     env_file:
       - .env
     ports:
@@ -66,6 +114,7 @@ services:
     volumes:
       - ./data/tautulli:/config
       - /c/Users/djpar/AppData/Local/Plex Media Server/Logs:/logs:ro
+    restart: unless-stopped
     networks:
       - web
   lazylibrarian:
@@ -75,7 +124,7 @@ services:
     #   dockerfile: Dockerfile
     #   context: .
     container_name: dms.lazylibrarian
-    privileged: true
+    # privileged: true
     # restart: always
     volumes:
       - ./data/lazylibrarian/config:/config
@@ -91,13 +140,13 @@ services:
       - PGID=1000
       - TZ=America/Detroit
       - DOCKER_MODS=linuxserver/calibre-web:calibre
+    restart: unless-stopped
     networks:
       - web
   calibre-web:
     image: linuxserver/calibre-web
     container_name: dms.calibre-web
-    privileged: true
-    restart: always
+    # privileged: true
     environment:
       - PUID=1000
       - PGID=1000
@@ -108,13 +157,15 @@ services:
       - books:/books
     ports:
       - 8083:8083
+    restart: unless-stopped
     networks:
       - web
   ombi:
     image: linuxserver/ombi
     container_name: dms.ombi
-    privileged: true
-    restart: always
+    # privileged: true
+    cap_add:
+      - NET_ADMIN
     volumes:
       - ./data/ombi:/config
       - ./data/shared:/shared
@@ -122,27 +173,27 @@ services:
       - 3579:3579
     environment:
       - TZ=America/Detroit
+    restart: unless-stopped
     networks:
       - web
-  torproxy:
-    image: dperson/torproxy:latest
-    container_name: dms.torproxy
-    privileged: true
-    restart: always
-    ports:
-      - 8118:8118
-    build:
-      context: .
-      args:
-        b: 500 # Use a maximum of 500 kilobytes/sec
-    networks:
-      - web
+  # torproxy:
+  #   image: dperson/torproxy:latest
+  #   container_name: dms.torproxy
+  #   # privileged: true
+  #   ports:
+  #     - 8118:8118
+  #   build:
+  #     context: .
+  #     args:
+  #       b: 500 # Use a maximum of 500 kilobytes/sec
+  #   restart: unless-stopped
+  #   networks:
+  #     - web
   # jackett:
   #   restart: unless-stopped
   #   image: linuxserver/jackett:latest
   #   container_name: dms.jackett
   #   privileged: true
-  #   restart: always
   #   depends_on:
   #     - torproxy
   #   links:
@@ -154,6 +205,9 @@ services:
   #     - RUN_OPTS=--ProxyConnection=dms.torproxy:8118 # Connect the proxy
   #   volumes:
   #     - ./data/jackett:/config
+  #   restart: unless-stopped
+  #   networks:
+  #     - web
   # delugevpn:
   #   image: binhex/arch-delugevpn
   #   container_name: dms.delugevpn
@@ -173,6 +227,9 @@ services:
   #     ENABLE_PRIVOXY: "yes"
   #     STRICT_PORT_FORWARDING: "yes"
   #     NAME_SERVERS: "8.8.8.8,8.8.4.4,209.222.18.222"
+  #   restart: unless-stopped
+  #   networks:
+  #     - web
 networks:
   web:
 volumes:
